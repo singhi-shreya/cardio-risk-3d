@@ -88,6 +88,8 @@ def main() -> None:
         oof = evaluate(y, cross_val_predict(build_pipeline(X, best), X, y, cv=cv, method="predict_proba")[:, 1])
 
         final = build_pipeline(X, best).fit(X, y)  # deployed model uses all available data
+        if target == "CAD":
+            cad_final = final
         joblib.dump({"pipeline": final, "feature_cols": list(X.columns), "model_name": best, "target": target},
                     MODEL_DIR / f"{target}.joblib", compress=3)
 
@@ -98,6 +100,13 @@ def main() -> None:
         print(f"   hold-out : {holdout}")
         print(f"   5-fold OOF: {oof}")
 
+    # Reference table for "patients like this": every patient, preprocessed and standardised
+    Xt = np.asarray(cad_final.named_steps["prep"].transform(X), dtype=float)
+    mean, std = Xt.mean(axis=0), Xt.std(axis=0)
+    std[std == 0] = 1.0
+    np.savez_compressed(MODEL_DIR / "reference.npz", Z=(Xt - mean) / std, mean=mean, std=std,
+                        Y=Y[TARGETS].to_numpy())
+
     # Form schema + a few real patients for the "load sample patient" button in the UI
     (MODEL_DIR / "schema.json").write_text(json.dumps(build_schema(X), indent=2))
     (MODEL_DIR / "metrics.json").write_text(json.dumps(report, indent=2))
@@ -107,7 +116,7 @@ def main() -> None:
         feats = {k: (None if pd.isna(v) else (v.item() if hasattr(v, "item") else v)) for k, v in X.loc[i].items()}
         samples.append({"features": feats, "truth": {t: int(Y.loc[i, t]) for t in TARGETS}})
     (MODEL_DIR / "samples.json").write_text(json.dumps(samples))
-    print(f"\nSaved models, schema.json, metrics.json, samples.json to {MODEL_DIR}")
+    print(f"\nSaved models, schema.json, metrics.json, samples.json, reference.npz to {MODEL_DIR}")
 
 
 if __name__ == "__main__":

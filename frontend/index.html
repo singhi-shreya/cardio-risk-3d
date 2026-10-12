@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CoronaryMap 3D – Cardiovascular risk visualization</title>
+  <title>CoronaryMap – a friendly look at heart risk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script type="importmap">
     {
@@ -15,87 +17,104 @@
   </script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">CoronaryMap 3D</div>
-    <div class="disclaimer-banner" role="alert">
-      <strong>Decision support / educational use only.</strong>
-      Predictions are not a substitute for formal diagnostic imaging (coronary angiography, CT angiography) or clinical judgement.
+  <header class="top">
+    <div class="logo">CoronaryMap</div>
+    <div class="note" role="note">Educational tool only. It is not a diagnosis and does not replace heart imaging.</div>
+    <div class="seg" id="view-mode" role="group" aria-label="View">
+      <button data-mode="simple" class="on">Simple</button>
+      <button data-mode="clinician">Clinician</button>
     </div>
-    <div class="status" id="status" aria-live="polite">Loading…</div>
+    <span class="status" id="status" aria-live="polite">Loading…</span>
   </header>
 
-  <main class="layout">
-    <!-- Patient inputs -->
-    <aside class="panel inputs" aria-label="Patient data">
-      <div class="panel-head">
-        <h2>Patient data</h2>
-        <div class="btn-row">
-          <button id="btn-sample" class="btn primary">Load random patient</button>
-          <button id="btn-reset" class="btn">Reset</button>
-        </div>
-        <p id="truth" class="truth" hidden></p>
+  <main class="grid">
+    <!-- Left: inputs -->
+    <section class="card about" aria-label="About you">
+      <h2>About you</h2>
+      <div class="personas" id="personas">
+        <button class="pill" data-p="alex">Meet Alex, 58</button>
+        <button class="pill" data-p="priya">Meet Priya, 45</button>
+        <button class="pill" data-p="random">Random real patient</button>
+        <button class="pill ghost" data-p="reset">Start fresh</button>
       </div>
-      <div id="form" class="form"></div>
-    </aside>
-
-    <!-- 3D viewer -->
-    <section class="viewer" id="viewer" aria-label="3D heart viewer">
-      <canvas id="scene"></canvas>
-      <div class="hud top-left">
-        <div class="legend">
-          <span>Stenosis risk</span>
-          <div class="legend-bar"></div>
-          <div class="legend-ticks"><span>0%</span><span>50%</span><span>100%</span></div>
-        </div>
+      <p id="truth" class="truth" hidden></p>
+      <div id="key-fields"></div>
+      <div class="progress">
+        <span id="progress-text"></span>
+        <div class="bar"><i id="progress-bar"></i></div>
       </div>
-      <div class="hud top-right">
-        <label class="toggle"><input type="checkbox" id="tg-torso" checked /> Rib cage</label>
-        <label class="toggle"><input type="checkbox" id="tg-labels" checked /> Labels</label>
-        <button class="btn small" id="btn-view">Reset view</button>
-      </div>
-      <div class="hud bottom-left" id="hud-selected">Click a coronary artery or the heart to inspect it</div>
-      <div class="hud bottom-right hint">Drag to rotate · Scroll to zoom · Right-drag to pan</div>
-      <div class="watermark">Educational / decision support only</div>
-      <div class="tooltip" id="tooltip" hidden></div>
-      <noscript>JavaScript is required for the 3D viewer.</noscript>
+      <button id="btn-more" class="pill wide" aria-expanded="false">Add more details</button>
+      <p class="muted">Leave anything blank. Tap a selected answer again to clear it.</p>
+      <div id="more-fields" hidden></div>
     </section>
 
-    <!-- Results -->
-    <aside class="panel results" aria-label="Prediction results">
-      <div id="overall" class="overall"></div>
-      <div id="vessel-cards" class="vessel-cards"></div>
-
-      <section class="block">
-        <div class="block-head">
-          <h2 id="why-title">Why this prediction?</h2>
+    <!-- Centre: heart -->
+    <section class="center" aria-label="3D heart">
+      <div class="card stage" id="viewer">
+        <canvas id="scene"></canvas>
+        <div class="stage-tools">
+          <label><input type="checkbox" id="tg-ribs" /> Rib cage</label>
+          <label><input type="checkbox" id="tg-labels" checked /> Labels</label>
+          <button class="pill small" id="btn-view">Reset view</button>
         </div>
-        <p id="why-sub" class="muted"></p>
-        <div id="drivers" class="drivers"></div>
-      </section>
+        <div class="stage-hint">Drag to turn the heart · Scroll to zoom · Tap an artery to learn more</div>
+        <div class="tooltip" id="tooltip" hidden></div>
+      </div>
+      <div class="chips" id="chips" aria-label="Risk by artery"></div>
 
-      <section class="block">
-        <div class="block-head"><h2>Physiological measurements</h2></div>
-        <p class="muted">Entered values against typical adult reference ranges, with each one's share of the selected prediction.</p>
-        <table class="vitals" id="vitals"></table>
-      </section>
-
-      <section class="block">
-        <div class="block-head">
-          <h2>Model performance</h2>
-          <div class="seg" id="metric-mode">
-            <button data-mode="holdout" class="on">Hold-out</button>
-            <button data-mode="cv_oof">5-fold CV</button>
-          </div>
+      <div class="card whatif" id="whatif">
+        <h2>What if...? Try it</h2>
+        <div class="wi-row">
+          <select id="wi-field" aria-label="What to change"></select>
+          <b id="wi-val"></b>
         </div>
-        <div class="table-scroll"><table class="metrics" id="metrics"></table></div>
-      </section>
+        <input type="range" id="wi-slider" aria-label="Change this value" />
+        <div id="wi-delta" class="wi-delta"></div>
+        <p class="muted">Slide it and watch the arteries change. This shows how the model responds. It is not medical advice.
+          <button class="link" id="wi-reset" hidden>Put it back</button></p>
+      </div>
+    </section>
+
+    <!-- Right: result -->
+    <aside class="right" aria-label="Result">
+      <div class="card" id="overall"></div>
+      <div class="card" id="story"></div>
+      <button id="btn-details" class="pill on wide big">See the details</button>
+      <p class="muted center-text">Charts, measurements and model scores</p>
     </aside>
   </main>
 
-  <footer class="footer-disclaimer">
-    ⚠ For decision support / educational purposes only. Not a medical device. Not a substitute for formal diagnostic imaging.
-    Trained on the public Z-Alizadeh Sani dataset (303 patients); results do not generalise to every population.
+  <footer class="foot">
+    For decision support and educational purposes only. Not a medical device and not a substitute for formal diagnostic imaging.
+    Trained on the public Z-Alizadeh Sani dataset (303 patients), so results may not apply to everyone.
   </footer>
+
+  <!-- Details drawer -->
+  <div class="backdrop" id="backdrop" hidden></div>
+  <aside class="drawer" id="drawer" aria-label="Details" aria-hidden="true">
+    <div class="drawer-head">
+      <h2>The details</h2>
+      <button class="pill small" id="drawer-close">Close</button>
+    </div>
+    <div class="seg tabs" id="drawer-tabs" role="group" aria-label="Which prediction"></div>
+    <section class="block">
+      <h3 id="why-title">Why this prediction?</h3>
+      <p class="muted">Each bar is one input's SHAP contribution. Red pushes the risk up, blue pushes it down. Percentages are each input's share of the total effect.</p>
+      <div id="drivers" class="drivers"></div>
+    </section>
+    <section class="block">
+      <h3>Measurements</h3>
+      <p class="muted">Your values against typical adult ranges, with each one's share of the selected prediction.</p>
+      <table class="vitals" id="vitals"></table>
+    </section>
+    <section class="block">
+      <div class="block-head">
+        <h3>Model performance</h3>
+        <div class="seg" id="metric-mode"><button data-mode="holdout" class="on">Hold-out</button><button data-mode="cv_oof">5-fold CV</button></div>
+      </div>
+      <div class="table-scroll"><table class="metrics" id="metrics"></table></div>
+    </section>
+  </aside>
 
   <script type="module" src="app.js"></script>
 </body>

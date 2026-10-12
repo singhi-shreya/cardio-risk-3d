@@ -22,6 +22,11 @@ interactive 3D heart. A dashboard explains every prediction with SHAP values.
 | Visible disclaimers | top banner, in-viewer badge, footer |
 | Works without a dedicated GPU | simple geometry, pixel ratio capped at 1.5 |
 | Extensible | the input form is generated from `models/schema.json`; add a column → retrain → new field appears |
+| Beginner-friendly UI | plain-language labels with the clinical name beside them, "?" help on every field, Yes/No toggles, sliders, 10 key inputs up front (`backend/field_info.py`) |
+| Simple / Clinician views | Simple shows the heart, one headline and a plain-English story; Clinician shows technical names and opens the full details drawer |
+| "What if...?" | slide one input and watch the model's predictions and the arteries change live |
+| "Patients like this" | the 5 most similar dataset patients and what their angiography showed |
+| Honest confidence | states how many of the 55 details were provided |
 
 ## Project layout
 
@@ -29,13 +34,14 @@ interactive 3D heart. A dashboard explains every prediction with SHAP values.
 cardio-risk-3d/
 ├─ backend/
 │  ├─ common.py        dataset loading, targets, schema, preprocessing
+│  ├─ field_info.py    friendly labels, groups, help text, typical ranges (edit freely, no retraining)
 │  ├─ train.py         training + validation + saving models
 │  └─ app.py           FastAPI: /api/predict, /api/schema, /api/metrics, /api/samples (+ serves frontend)
 ├─ frontend/
 │  ├─ index.html  style.css  app.js     Three.js viewer + dashboard
 │  └─ models/heart.glb                  (optional) your own anatomical mesh
 ├─ data/               put the dataset here (make_demo_data.py makes a SYNTHETIC test file)
-├─ models/             trained pipelines (*.joblib), metrics.json, schema.json, samples.json
+├─ models/             trained pipelines (*.joblib), metrics.json, schema.json, samples.json, reference.npz
 └─ requirements.txt
 ```
 
@@ -79,12 +85,14 @@ Open <http://127.0.0.1:8000>.
 
 ## Using the app
 
-1. Click **Load random patient** (a real record from the dataset, with its angiography labels shown for comparison)
-   or edit the fields on the left. Blank fields are imputed with the training median / mode.
-2. Predictions update about 350 ms after each change; the arteries recolour in the 3D view.
-3. Rotate with the left mouse button, zoom with the wheel, pan with the right button.
-4. Click **LAD / LCX / RCA** (in 3D or on the cards) or the heart (overall CAD) to see *why* in the SHAP chart and
-   the measurement table.
+1. Pick **Meet Alex / Meet Priya**, a **Random real patient** (shown with its angiography result for comparison), or
+   edit the fields on the left. Tap **?** next to any field for a plain-language explanation. Blank fields are imputed
+   with the training median / mode, and the confidence line tells you how many details were provided.
+2. Predictions update about 350 ms after each change; the arteries recolour and the heart beats at the entered pulse rate.
+3. Rotate with the left mouse button, zoom with the wheel, pan with the right button. Click **LAD / LCX / RCA** (on the heart
+   or the chips) or the heart itself (overall CAD) to read why in plain English and see similar patients.
+4. Use **What if...?** to change one value and watch the predictions move.
+5. Click **See the details** (or switch to **Clinician**) for the SHAP chart, measurement table and model scores.
 
 ## Method
 
