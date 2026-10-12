@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.vscode/
+.ipynb_checkpoints/
+# synthetic test data is never part of a real submission
+data/demo_*.csv
